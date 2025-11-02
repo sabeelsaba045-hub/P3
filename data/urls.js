@@ -1,9 +1,11 @@
-// data/urls.js
+// קובץ לניהול כתובות URL של הפרויקט
+// מטרה: הפרדה בין נתונים לקוד הבדיקה
+
 export const urls = {
-  base: 'https://www.saucedemo.com',
-  inventory: 'https://www.saucedemo.com/inventory.html',
-  cart: 'https://www.saucedemo.com/cart.html',
-  checkoutStepOne: 'https://www.saucedemo.com/checkout-step-one.html',
-  checkoutStepTwo: 'https://www.saucedemo.com/checkout-step-two.html',
-  checkoutComplete: 'https://www.saucedemo.com/checkout-complete.html',
+  baseUrl: "https://www.saucedemo.com/",
+  inventoryUrl: "https://www.saucedemo.com/inventory.html",
+  cartUrl: "https://www.saucedemo.com/cart.html",
+  checkoutStepOneUrl: "https://www.saucedemo.com/checkout-step-one.html",
+  checkoutStepTwoUrl: "https://www.saucedemo.com/checkout-step-two.html",
+  checkoutCompleteUrl: "https://www.saucedemo.com/checkout-complete.html",
 };

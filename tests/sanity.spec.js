@@ -1,64 +1,82 @@
-// tests/sanity.spec.js
-import { test, expect } from '@playwright/test';
-import { urls } from '../data/urls.js';
-import { user_standard } from '../data/users.js';
+// טסט Sanity - תרחיש רכישה מלא
+import { test, expect } from "@playwright/test";
+import { LoginPage } from "../pages/LoginPage.js";
+import { InventoryPage } from "../pages/InventoryPage.js";
+import { CartPage } from "../pages/CartPage.js";
+import { CheckoutPage } from "../pages/CheckoutPage.js";
+import { urls } from "../data/urls.js";
+import { users } from "../data/Users.js";
 
-test.describe('Sanity - Full purchase flow', () => {
-  test('standard_user purchases 2 items end-to-end', async ({ page }) => {
-    // --- התחברות עם user_standard ---
-    await page.goto(urls.base);
+test.describe("Sanity Test - Full Purchase Flow", () => {
+  test("Complete purchase from login to checkout", async ({ page }) => {
+    // יצירת Page Objects
+    const loginPage = new LoginPage(page);
+    const inventoryPage = new InventoryPage(page);
+    const cartPage = new CartPage(page);
+    const checkoutPage = new CheckoutPage(page);
 
-    // מילוי טופס לוגין ולחיצה על Login
-    await page.getByPlaceholder(/username/i).fill(user_standard.username);
-    await page.getByPlaceholder(/password/i).fill(user_standard.password);
-    await page.getByRole('button', { name: /login/i }).click();
+    // שלב 1: התחברות
+    await loginPage.goto(urls.baseUrl);
+    await loginPage.login(users.validUser.username, users.validUser.password);
 
-    // --- אימות: URL לאחר התחברות ---
-    await expect(page).toHaveURL(urls.inventory);
+    // שלב 2: אימות URL לאחר התחברות
+    await expect(page).toHaveURL(urls.inventoryUrl);
 
-    // --- אימות כותרת הדף (Products) ---
-    await expect(page.locator('.title')).toHaveText('Products');
+    // שלב 3: אימות כותרת דף המוצרים
+    await inventoryPage.expectPageTitle("Products");
 
-    // --- הוספת 2 מוצרים לעגלה ---
-    const addButtons = page.getByRole('button', { name: /^add to cart$/i });
-    await addButtons.nth(0).click();
-    await addButtons.nth(1).click();
+    // שלב 4: הוספת 2 מוצרים לעגלה
+    await inventoryPage.addProductToCart("backpack");
+    await inventoryPage.addProductToCart("bike-light");
 
-    // --- אימות מונה העגלה = 2 ---
-    const cartBadge = page.locator('.shopping_cart_badge');
-    await expect(cartBadge).toHaveText('2');
+    // שלב 5: בדיקת מספר הפריטים בעגלה (badge)
+    await inventoryPage.expectCartItemCount("2");
 
-    // --- מעבר לעגלת הקניות ---
-    await page.locator('.shopping_cart_link').click();
+    // שלב 6: מעבר לעגלת הקניות
+    await inventoryPage.goToCart();
 
-    // --- אימותים בעגלת הקניות ---
-    await expect(page).toHaveURL(urls.cart);
-    await expect(page.locator('.title')).toHaveText('Your Cart');
-    await expect(page.locator('.cart_item')).toHaveCount(2);
+    // שלב 7: אימות URL של העגלה
+    await expect(page).toHaveURL(urls.cartUrl);
 
-    // --- מעבר ל- One Step Checkout ---
-    await page.getByRole('button', { name: /^checkout$/i }).click();
+    // שלב 8: אימות כותרת העגלה
+    await cartPage.expectPageTitle("Your Cart");
 
-    // --- אימותים: Step One ---
-    await expect(page).toHaveURL(urls.checkoutStepOne);
-    await expect(page.locator('.title')).toHaveText('Checkout: Your Information');
+    // שלב 9: אימות מספר הפריטים בעגלה
+    const itemsCount = await cartPage.getCartItemsCount();
+    expect(itemsCount).toBe(2);
 
-    // מילוי הטופס ומעבר הלאה
-    await page.getByPlaceholder(/first name/i).fill('Test');
-    await page.getByPlaceholder(/last name/i).fill('User');
-    await page.getByPlaceholder(/zip|postal code/i).fill('12345');
-    await page.getByRole('button', { name: /^continue$/i }).click();
+    // שלב 10: מעבר ל-Checkout Step 1
+    await cartPage.goToCheckout();
 
-    // --- אימותים: Step Two ---
-    await expect(page).toHaveURL(urls.checkoutStepTwo);
-    await expect(page.locator('.title')).toHaveText('Checkout: Overview');
+    // שלב 11: אימות URL של Checkout Step 1
+    await expect(page).toHaveURL(urls.checkoutStepOneUrl);
 
-    // סיום רכישה
-    await page.getByRole('button', { name: /^finish$/i }).click();
+    // שלב 12: אימות כותרת Checkout Step 1
+    await checkoutPage.expectPageTitle("Checkout: Your Information");
 
-    // --- אימותים: עמוד הסיום ---
-    await expect(page).toHaveURL(urls.checkoutComplete);
-    await expect(page.locator('.title')).toHaveText('Checkout: Complete!');
-    await expect(page.getByText(/thank you for your order!/i)).toBeVisible();
+    // שלב 13: מילוי טופס ומעבר לשלב הבא
+    await checkoutPage.fillCheckoutInfo("John", "Doe", "12345");
+    await checkoutPage.clickContinue();
+
+    // שלב 14: אימות URL של Checkout Step 2
+    await expect(page).toHaveURL(urls.checkoutStepTwoUrl);
+
+    // שלב 15: אימות כותרת Checkout Step 2
+    await checkoutPage.expectPageTitle("Checkout: Overview");
+
+    // שלב 16: סיום הרכישה
+    await checkoutPage.clickFinish();
+
+    // שלב 17: אימות URL של Checkout Complete
+    await expect(page).toHaveURL(urls.checkoutCompleteUrl);
+
+    // שלב 18: אימות כותרת Complete
+    await checkoutPage.expectPageTitle("Checkout: Complete!");
+
+    // שלב 19: אימות הודעת התודה
+    await checkoutPage.expectCompleteHeader("Thank you for your order!");
+    await checkoutPage.expectCompleteTextToContain(
+      "Your order has been dispatched"
+    );
   });
 });
